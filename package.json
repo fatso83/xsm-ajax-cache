@@ -1,0 +1,23 @@
+{
+  "name": "xsm-ajax-cache",
+  "version": "0.1.0",
+  "description": "cache ajax result by localStorage",
+  "main": "index.js",
+  "scripts": {
+    "test": "start test/test.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xsm-ue/xsm-ajax-cache.git"
+  },
+  "keywords": [
+    "ajax",
+    "cache"
+  ],
+  "author": "xsm-ue",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xsm-ue/xsm-ajax-cache/issues"
+  },
+  "homepage": "https://github.com/xsm-ue/xsm-ajax-cache#readme"
+}
