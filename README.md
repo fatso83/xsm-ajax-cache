@@ -2,8 +2,16 @@
 
 cache ajax result by localStorage
 
+## install
+
+NPM:
+```hash
+npm install xsm-ajax-cache
+```
+
 ## usage
 
+With Broswerify:
 ```javascript
 var AjaxCache = require('xsm-ajax-cache');
 
