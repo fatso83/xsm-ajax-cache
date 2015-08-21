@@ -1,6 +1,6 @@
 {
   "name": "xsm-ajax-cache",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "cache ajax result by localStorage",
   "main": "index.js",
   "scripts": {
