@@ -1,0 +1,7 @@
+@charset "UTF-8";
+
+* { margin: 0; padding: 0; }
+body { font: 16px/2 arial, "Microsoft Yahei", sans-serif; color: #333; padding: 30px 50px; }
+#results li { color: #999; }
+#results li.success { color: green; font-weight: bold; }
+#results li.fail { color: red; font-weight: bold; }

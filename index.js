@@ -9,48 +9,60 @@ try {
 	canCache = false;
 }
 
+/*
+ * 创建一个 AjaxCache 实例对象，必须传入
+ * @param {Object} options - 必须传入必要的配置，如：key, ajaxParam
+ * @param {string} options.key - 缓存标识
+ * @param {Object|Function} options.ajaxParam - jQuery Ajax 请求参数对象
+ */
 function AjaxCache(options) {
-	// 确保以构造函数方式调用当前函数
-	if (!(this instanceof AjaxCache)) {
+	if (this instanceof AjaxCache) {
+		var error = validateOptions(options);
+		if (error) {
+			debug('AjaxCache - can not create a valid instance object: ' + error);
+			if (AjaxCache.debug) {
+				throw new Error(error);
+			}
+		}
+		$.extend(this, options);
+	} else {
 		return new AjaxCache(options);
 	}
+}
 
-	this._deferred = new $.Deferred();
-	/*
-	 * 使得当前实例对象可以直接通过 promise 接口方法来绑定回调
-	 * @example
-	 * this.done(function (data) { ... })
-	 * this.fail(function () { ... })
-	 */
-	this._deferred.promise(this);
+function validateOptions(options) {
+	if (!options) {
+		return 'must pass [options] parameter';
+	}
+	if (typeof options.key !== 'string') {
+		return 'must passs options.key {string}';
+	}
+	if (typeof options.ajaxParam !== 'function' &&
+		typeof options.ajaxParam !== 'object') {
+		return 'must passs options.ajaxParam {Object|Function}';
+	}
 }
 
 /*
- * 实现简单的继承功能
- * @example
- * var NoticeDataAjaxCache = AjaxCache.extend({
- *   expire: 24 * 60 * 60 * 1000, // 缓存失效时间为24小时
- *   key: 'notice_cache', // LocalStorage 中缓存数据对应的关键字
- *   ajaxParam: { url: 'url', dataType: 'JSON' },
- *   validateAjax: function (data) { ... },
- *   validateCache: function (data) { ... },
- * })
+ * 只在 debug 模式下输出错误信息
  */
-AjaxCache.extend = function (options) {
+AjaxCache.debug = false;
 
-	function Fn() {}
-	Fn.prototype = AjaxCache.prototype;
-
-	function constructor() {
-		AjaxCache.apply(this, arguments);
-		this.initialize.apply(this, arguments);
+function debug() {
+	if (AjaxCache.debug && typeof console !== 'undefined' && console.error) {
+		for (var i = 0, len = arguments.length; i < len; i++) {
+			console.error(arguments[i]);
+		}
 	}
-	constructor.prototype = $.extend(new Fn(), options);
+}
 
-	return constructor;
-};
+/*
+ * 暴露内部环境判断结果
+ */
+AjaxCache.canCache = canCache;
 
 AjaxCache.prototype = {
+
 	// 是否输出数据校验错误信息
 	debug: false,
 	// 缺省过期时间为 6 小时
@@ -65,26 +77,53 @@ AjaxCache.prototype = {
 	// 由于过期导致的缓存失败，建议重用
 	// 其他原因，如请求参数类型不同导致的缓存失效，不建议重用
 	useDirtyCacheIfAjaxFail: true,
-	// 每次创建实例对象时调用
-	initialize: function () { },
+
+	_reset: function () {
+		this._deferred = new $.Deferred();
+		this._promise = this._deferred.promise();
+	},
+
 	/*
-	 * 获取数据，无论是从缓存还是服务器成功获取到数据都会调用相应回调函数
+	 * 获取数据 - 主要接口方法
+	 * 如果缓存中有满足条件数据，则使用缓存中的数据，否则发起 AJAX 请求
+	 * @param {Function} done - 获取数据成功后调用的回调函数, done(data)
+	 * @param {Function} fail - 获取数据失败后调用的回调函数, fail()
+	 * @returns {jQueryPromiseObject}
 	 */
-	getData: function () {
-		var state = this.state();
+	getData: function (done, fail) {
+		// 每次调用 getData() 都重置内部数据
+		this._reset();
+
+		if (typeof done === 'function') {
+			this._promise.done(done);
+		}
+		if (typeof fail === 'function') {
+			this._promise.fail(fail);
+		}
+
+		
+		var useCache = false;
+
+		var state = this._deferred.state();
 		// 检查是否已完成数据获取
 		if (state !== 'resolved' && state !== 'rejected') {
-			var cacheData = this.getCache();
-			if (cacheData) {
-				this.cacheData = cacheData;
-				if (this._validateCache(cacheData)) {
-					this._deferred.resolve(this.cache2data(cacheData));
-					return this;
+			var cache = this.getCache();
+			if (cache) {
+				// 校验前保存数据，即便校验失败，也有可能在请求也失败后使用校验失败的缓存数据
+				this.cacheData = cache;
+				if (this._validateCache(cache)) {
+					useCache = true;
 				}
 			}
+		}
+
+		if (useCache) {
+			this._deferred.resolve(this.cache2data(cache));
+		} else {
 			this.ajax();
 		}
-		return this;
+
+		return this._promise;
 	},
 	ajax: function () {
 		var self = this;
@@ -128,7 +167,12 @@ AjaxCache.prototype = {
 		if (this.canCache) {
 			var cache = window.localStorage.getItem(this.key);
 			if (cache) {
-				return window.JSON.parse(cache);
+				try {
+					return window.JSON.parse(cache);
+				} catch (e) {
+					debug('cache data parse as JSON fail', e);
+					return null;
+				}
 			}
 		}
 		return null;
@@ -138,21 +182,23 @@ AjaxCache.prototype = {
 			window.localStorage.setItem(this.key, window.JSON.stringify(cacheData));
 		}
 	},
-	_validateAjax: function (ajaxData) {
-		return this._validate('Ajax', ajaxData);
-	},
-	_validateCache: function (cacheData) {
-		return this._validate('Cache', cacheData);
-	},
-	_validate: function (type, data) {
-		var validateMethod = 'validate' + type;
-		if (this[validateMethod]) {
-			var error = this[validateMethod](data);
+	_validateAjax: function (data) {
+		if (this.validateAjax) {
+			var error = this.validateAjax(data);
 			if (error) {
-				this[validateMethod + 'Error'] = error;
-				if (this.debug && window.console) {
-					window.console.log('[' + this.key + '] validate ' + type + ' error: ' + error);
-				}
+				this.validateAjaxError = error;
+				debug('[' + this.key + '] validate Ajax error: ' + error);
+				return false;
+			}
+		}
+		return true;
+	},
+	_validateCache: function (data) {
+		if (this.validateCache) {
+			var error = this.validateCache(data);
+			if (error) {
+				this.validateCacheError = error;
+				debug('[' + this.key + '] validate Cache error: ' + error);
 				return false;
 			}
 		}
