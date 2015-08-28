@@ -81,6 +81,14 @@ AjaxCache.prototype = {
 	_reset: function () {
 		this._deferred = new $.Deferred();
 		this._promise = this._deferred.promise();
+		this._initialize()
+	},
+
+	_initialize: function () {
+		if (!this._inited && this.initialize) {
+			this.initialize()
+			this._inited = true
+		}
 	},
 
 	/*

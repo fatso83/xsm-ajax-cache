@@ -17,6 +17,10 @@ var AjaxCache = require('xsm-ajax-cache');
 
 var MyAjaxCache = AjaxCache({
     key: 'my-cache',
+    initialize: function () {
+        // some thing to do before getData()
+        // only do it once and called just before getData()
+    },
     ajaxParam: {
         url: '/my-data-path',
         dataType: 'JSON'

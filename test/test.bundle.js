@@ -82,6 +82,14 @@ AjaxCache.prototype = {
 	_reset: function () {
 		this._deferred = new $.Deferred();
 		this._promise = this._deferred.promise();
+		this._initialize()
+	},
+
+	_initialize: function () {
+		if (!this._inited && this.initialize) {
+			this.initialize()
+			this._inited = true
+		}
 	},
 
 	/*
@@ -10607,9 +10615,15 @@ $(function () {
 
 function test1() {
 
+	var remove_key = 'must-be-remove-before-test1'
+	localStorage.setItem(remove_key, remove_key)
+
 	var TestAjaxCache1 = AjaxCache({
 		key: 'ajax-cache-test-1',
 		ajaxParam: { url: 'test.json', dataType: 'JSON' },
+		initialize: function () {
+			localStorage.removeItem(remove_key)
+		},
 		// 修改缓存后版本
 		data2cache: function (data) {
 			return {
@@ -10643,7 +10657,14 @@ function test1() {
 		}
 	}).fail(function () {
 		log('TestAjaxCache1 - first request - fail', 'fail')
-	});
+	})
+	
+	var data = localStorage.getItem(remove_key)
+	if (data) {
+		log('TestAjaxCache1 - initialize - fail', 'fail')
+	} else {
+		log('TestAjaxCache1 - initialize - done', 'success')
+	}
 }
 
 function test2() {

@@ -4,7 +4,7 @@
   "description": "cache ajax result by localStorage",
   "main": "index.js",
   "scripts": {
-    "start": "node node_modules/local-web-server/bin/ws -d test",
+    "start": "start node node_modules/local-web-server/bin/ws -d test",
     "test": "start http://localhost:8000/test.html"
   },
   "repository": {
