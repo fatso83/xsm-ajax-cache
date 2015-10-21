@@ -241,7 +241,7 @@ AjaxCache.prototype = {
 		}
 		if ($.isArray(oldKeys)) {
 			$.each(oldKeys, function (i, oldKey) {
-				localStorage.removeItem(oldKeys)
+				localStorage.removeItem(oldKey)
 			})
 		}
 	}
