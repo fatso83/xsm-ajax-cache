@@ -72,6 +72,8 @@ AjaxCache.prototype = {
 	lastModify: 0,
 	// 提前判断当前环境能否使用本地缓存，IE8+ 支持
 	canCache: canCache,
+	// 若修改过 key，检测并删除原有 key 对应的缓存数据
+	oldKeys: null,
 	// ！必须覆盖为实际需要的本地缓存的标识名称，用于区分不同类型数据
 	key: 'ajax_cache',
 	// ajax 数据验证失败后，是否尝试使用之前验证失败的缓存数据
@@ -83,6 +85,7 @@ AjaxCache.prototype = {
 		this._deferred = new $.Deferred();
 		this._promise = this._deferred.promise();
 		this._initialize()
+		if (this.canCache && this.oldKeys) this._removeOldKeys()
 	},
 
 	_initialize: function () {
@@ -229,6 +232,18 @@ AjaxCache.prototype = {
 		}
 		if (+new Date() - cacheData.time > this.expire) {
 			return 'cache expire';
+		}
+	},
+
+	_removeOldKeys: function () {
+		var oldKeys = this.oldKeys
+		if (typeof oldKeys === 'string') {
+			oldKeys = [oldKeys]
+		}
+		if ($.isArray(oldKeys)) {
+			$.each(oldKeys, function (i, oldKey) {
+				localStorage.removeItem(oldKeys)
+			})
 		}
 	}
 };
@@ -10620,10 +10635,8 @@ function test1() {
 
 	var TestAjaxCache1 = AjaxCache({
 		key: 'ajax-cache-test-1',
+		oldKeys: remove_key,
 		ajaxParam: { url: 'test.json', dataType: 'JSON' },
-		initialize: function () {
-			localStorage.removeItem(remove_key)
-		},
 		// 修改缓存后版本
 		data2cache: function (data) {
 			return {
@@ -10661,9 +10674,9 @@ function test1() {
 	
 	var data = localStorage.getItem(remove_key)
 	if (data) {
-		log('TestAjaxCache1 - initialize - fail', 'fail')
+		log('TestAjaxCache1 - remove oldKeys - fail', 'fail')
 	} else {
-		log('TestAjaxCache1 - initialize - done', 'success')
+		log('TestAjaxCache1 - remove oldKeys - done', 'success')
 	}
 }
 

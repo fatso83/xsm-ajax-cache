@@ -30,10 +30,8 @@ function test1() {
 
 	var TestAjaxCache1 = AjaxCache({
 		key: 'ajax-cache-test-1',
+		oldKeys: remove_key,
 		ajaxParam: { url: 'test.json', dataType: 'JSON' },
-		initialize: function () {
-			localStorage.removeItem(remove_key)
-		},
 		// 修改缓存后版本
 		data2cache: function (data) {
 			return {
@@ -71,9 +69,9 @@ function test1() {
 	
 	var data = localStorage.getItem(remove_key)
 	if (data) {
-		log('TestAjaxCache1 - initialize - fail', 'fail')
+		log('TestAjaxCache1 - remove oldKeys - fail', 'fail')
 	} else {
-		log('TestAjaxCache1 - initialize - done', 'success')
+		log('TestAjaxCache1 - remove oldKeys - done', 'success')
 	}
 }
 
